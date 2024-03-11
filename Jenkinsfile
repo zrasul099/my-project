@@ -1,30 +1,46 @@
-node {
-    def app
+pipeline {
+    agent any
 
-    stage('Clone repository') {
-      
-
-        checkout scm
+    environment {
+        registry = 'https://registry.hub.docker.com'
+        imageName = 'zrasul099/class'
+        tag = "${env.BUILD_NUMBER}"
     }
 
-    stage('Build image') {
-  
-       app = docker.build("zrasul099/class")
-    }
-
-    stage('Test image') {
-  
-
-        app.inside {
-            sh 'echo "Tests passed"'
+    stages {
+        stage('Clone repository') {
+            steps {
+                checkout scm
+            }
         }
-    }
 
-    stage('Push image') {
-        
-        docker.withRegistry('https://registry.hub.docker.com', 'docker') {
-            app.push("${env.BUILD_NUMBER}")
-            app.push("latest")
+        stage('Build image') {
+            steps {
+                script {
+                    app = docker.build("${imageName}:${tag}")
+                }
+            }
+        }
+
+        stage('Test image') {
+            steps {
+                script {
+                    app.inside {
+                        sh 'echo "Tests passed"'
+                    }
+                }
+            }
+        }
+
+        stage('Push image') {
+            steps {
+                script {
+                    docker.withRegistry("${registry}", 'docker') {
+                        app.push("${tag}")
+                        app.push("latest")
+                    }
+                }
+            }
         }
     }
 }
